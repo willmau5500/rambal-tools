@@ -429,6 +429,65 @@ tbody tr:hover td{background:linear-gradient(90deg, rgba(124,58,237,0.08) 0%, tr
 .notif-empty{padding:48px 20px;text-align:center;color:var(--muted)}
 .notif-empty-icon{font-size:36px;margin-bottom:12px;opacity:.4}
 
+/* USER MENU */
+#user-menu{
+  display:none;position:fixed;top:var(--nav-h);right:0;
+  width:260px;background:var(--bg2);
+  border-left:1px solid var(--border);border-bottom:1px solid var(--border);
+  border-radius:0 0 0 var(--r-lg);z-index:150;
+  box-shadow:-8px 8px 32px rgba(0,0,0,0.5);
+  animation:fadeIn .2s ease;
+}
+#user-menu.open{display:block}
+.user-menu-header{
+  padding:16px 18px 12px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:12px;
+}
+.user-menu-avatar{
+  width:38px;height:38px;border-radius:10px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--purple),var(--purple2));
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;font-weight:700;color:#fff;
+  box-shadow:0 2px 8px var(--purple-glow);
+}
+.user-menu-info{display:flex;flex-direction:column;gap:2px;min-width:0}
+.user-menu-name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-menu-role{font-size:10px;color:var(--purple2);font-weight:500}
+.user-menu-divider{height:1px;background:var(--border);margin:4px 0}
+.user-menu-item{
+  display:flex;align-items:center;gap:10px;
+  padding:11px 18px;cursor:pointer;color:var(--muted);
+  font-size:13px;font-weight:500;transition:var(--trans);
+}
+.user-menu-item i{font-size:17px}
+.user-menu-item:hover{background:var(--bg3);color:var(--text)}
+.user-menu-item.danger{color:var(--danger)}
+.user-menu-item.danger:hover{background:rgba(248,113,113,0.08)}
+
+/* SKELETON LOADER */
+@keyframes skeletonShimmer{
+  0%{background-position:-400px 0}
+  100%{background-position:400px 0}
+}
+.skeleton-cell{
+  height:13px;border-radius:4px;
+  background:linear-gradient(90deg,var(--bg3) 25%,var(--bg4) 50%,var(--bg3) 75%);
+  background-size:800px 100%;
+  animation:skeletonShimmer 1.4s infinite linear;
+  width:80%;
+}
+.skeleton-cell.w-full{width:100%}
+.skeleton-cell.w-half{width:45%}
+.skeleton-cell.w-sm{width:60px;height:22px;border-radius:20px}
+
+/* DATE INPUT */
+.date-input{
+  background:var(--bg3);border:1px solid var(--border);color:var(--text);
+  border-radius:var(--r-sm);padding:8px 14px;font-family:var(--font);
+  font-size:13px;outline:none;transition:var(--trans);color-scheme:dark;
+}
+.date-input:focus{border-color:var(--purple);box-shadow:0 0 0 3px rgba(124,58,237,0.1)}
+
 /* QR */
 .qr-wrap{display:flex;flex-direction:column;align-items:center;gap:16px;padding:24px 0}
 .qr-wrap canvas{border-radius:var(--r);background:#fff;padding:16px;box-shadow:0 8px 32px rgba(0,0,0,0.4)}
@@ -683,10 +742,10 @@ tbody tr:hover td{background:linear-gradient(90deg, rgba(124,58,237,0.08) 0%, tr
     </div>
     <div class="topbar-actions">
       <div class="icon-btn" onclick="toggleNotif()" title="Notificaciones">
-        🔔
+        <i class='bx bxs-bell' style="font-size:18px"></i>
         <div class="notif-badge" id="notif-dot"></div>
       </div>
-      <div class="user-chip" onclick="doLogout()" title="Cerrar sesión">
+      <div class="user-chip" onclick="toggleUserMenu()" title="Menú de cuenta">
         <div class="avatar" id="user-avatar">R</div>
         <div class="user-info">
           <div class="user-name" id="user-name">Usuario</div>
@@ -709,6 +768,22 @@ tbody tr:hover td{background:linear-gradient(90deg, rgba(124,58,237,0.08) 0%, tr
       <button class="btn btn-sm btn-ghost" onclick="marcarTodasLeidas()">Limpiar</button>
     </div>
     <div id="notif-list"><div class="notif-empty"><div class="notif-empty-icon">🔔</div>Sin notificaciones</div></div>
+  </div>
+
+  <!-- USER MENU -->
+  <div id="user-menu">
+    <div class="user-menu-header">
+      <div class="user-menu-avatar" id="umenu-avatar">R</div>
+      <div class="user-menu-info">
+        <div class="user-menu-name" id="umenu-name">Usuario</div>
+        <div class="user-menu-role" id="umenu-role">Cargando...</div>
+      </div>
+    </div>
+    <div class="user-menu-divider"></div>
+    <div class="user-menu-item danger" onclick="confirmLogout()">
+      <i class='bx bx-log-out'></i>
+      Cerrar sesión
+    </div>
   </div>
 
   <!-- MAIN -->
@@ -839,9 +914,15 @@ tbody tr:hover td{background:linear-gradient(90deg, rgba(124,58,237,0.08) 0%, tr
           <button class="btn btn-danger btn-sm" id="btn-vaciar-historial" onclick="vaciarHistorial()" style="display:none">🗑️ Vaciar historial</button>
         </div>
       </div>
-      <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
-        <button class="btn btn-primary" id="tab-hist-prestamos" onclick="setHistTab('prestamos')">🛠️ Préstamos</button>
-        <button class="btn btn-ghost" id="tab-hist-inventario" onclick="setHistTab('inventario')">📦 Inventario</button>
+      <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+        <button class="btn btn-primary" id="tab-hist-prestamos" onclick="setHistTab('prestamos')"><i class='bx bxs-wrench'></i> Préstamos</button>
+        <button class="btn btn-ghost" id="tab-hist-inventario" onclick="setHistTab('inventario')"><i class='bx bxs-package'></i> Inventario</button>
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+        <input class="search-input" id="hist-search" placeholder="🔍 Buscar..." oninput="filtrarHistorial()" style="flex:1;min-width:160px;width:auto">
+        <input type="date" id="hist-desde" class="date-input" onchange="filtrarHistorial()" title="Desde">
+        <input type="date" id="hist-hasta" class="date-input" onchange="filtrarHistorial()" title="Hasta">
+        <button class="btn btn-ghost btn-sm" onclick="limpiarFiltrosHistorial()" title="Limpiar filtros"><i class='bx bx-x'></i></button>
       </div>
       <div class="card" id="hist-prestamos-view">
         <div class="table-wrap">
@@ -864,7 +945,7 @@ tbody tr:hover td{background:linear-gradient(90deg, rgba(124,58,237,0.08) 0%, tr
         <div class="page-sub">Gestión de accesos al sistema</div>
       </div>
       <div class="card">
-        <div class="card-header"><span class="card-title">Todos los usuarios</span></div>
+        <div class="card-header"><span class="card-title">Todos los usuarios</span><div class="card-header-right"><input class="search-input" placeholder="🔍 Buscar usuario..." oninput="filtrarUsuarios(this.value)"></div></div>
         <div class="table-wrap">
           <table><thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th><th>Registro</th><th>Acciones</th></tr></thead>
           <tbody id="tabla-usuarios"><tr><td colspan="6"><div class="empty"><span class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><div class="empty-title">Cargando usuarios...</div></div></td></tr></tbody></table>
@@ -1090,21 +1171,21 @@ const sb=createClient(SUPA_URL,SUPA_KEY);
 let currentUser=null,currentPerfil=null,esAdmin=false,herramientas=[],todosHistorial=[],html5Qr=null;
 
 const PAGES_ADMIN=[
-  {id:'dashboard',label:'Dashboard',icon:'📊'},
-  {id:'herramientas',label:'Herramientas',icon:'🔧'},
-  {id:'inventario',label:'Inventario',icon:'📦'},
-  {id:'prestamos',label:'Préstamos QR',icon:'📷'},
-  {id:'solicitudes',label:'Solicitudes',icon:'📝'},
-  {id:'historial',label:'Historial',icon:'📋'},
-  {id:'usuarios',label:'Usuarios',icon:'👥'},
+  {id:'dashboard',label:'Dashboard',icon:`<i class='bx bxs-dashboard'></i>`},
+  {id:'herramientas',label:'Herramientas',icon:`<i class='bx bxs-wrench'></i>`},
+  {id:'inventario',label:'Inventario',icon:`<i class='bx bxs-package'></i>`},
+  {id:'prestamos',label:'Préstamos QR',icon:`<i class='bx bx-qr-scan'></i>`},
+  {id:'solicitudes',label:'Solicitudes',icon:`<i class='bx bxs-notepad'></i>`},
+  {id:'historial',label:'Historial',icon:`<i class='bx bxs-time-five'></i>`},
+  {id:'usuarios',label:'Usuarios',icon:`<i class='bx bxs-group'></i>`},
 ];
 const PAGES_USER=[
-  {id:'dashboard',label:'Inicio',icon:'🏠'},
-  {id:'herramientas',label:'Herramientas',icon:'🔧'},
-  {id:'inventario',label:'Inventario',icon:'📦'},
-  {id:'prestamos',label:'Escanear',icon:'📷'},
-  {id:'solicitudes',label:'Solicitudes',icon:'📝'},
-  {id:'historial',label:'Mis préstamos',icon:'📋'},
+  {id:'dashboard',label:'Inicio',icon:`<i class='bx bxs-home'></i>`},
+  {id:'herramientas',label:'Herramientas',icon:`<i class='bx bxs-wrench'></i>`},
+  {id:'inventario',label:'Inventario',icon:`<i class='bx bxs-package'></i>`},
+  {id:'prestamos',label:'Escanear',icon:`<i class='bx bx-qr-scan'></i>`},
+  {id:'solicitudes',label:'Solicitudes',icon:`<i class='bx bxs-notepad'></i>`},
+  {id:'historial',label:'Mis préstamos',icon:`<i class='bx bxs-time-five'></i>`},
 ];
 
 function buildNav(){
@@ -1221,6 +1302,33 @@ async function doRegister(){
 
 async function doLogout(){stopScan();await sb.auth.signOut();location.reload();}
 
+function toggleUserMenu(){
+  const m=document.getElementById('user-menu');
+  const isOpen=m.classList.contains('open');
+  // cerrar notif si está abierto
+  const notif=document.getElementById('notif-panel');
+  if(notif.classList.contains('open'))toggleNotif();
+  m.classList.toggle('open',!isOpen);
+}
+
+function confirmLogout(){
+  document.getElementById('user-menu').classList.remove('open');
+  if(confirm('¿Seguro que deseas cerrar sesión?'))doLogout();
+}
+
+document.addEventListener('click',e=>{
+  const menu=document.getElementById('user-menu');
+  if(!menu)return;
+  const chip=document.querySelector('.user-chip');
+  if(menu.classList.contains('open')&&!menu.contains(e.target)&&!chip.contains(e.target)){
+    menu.classList.remove('open');
+  }
+});
+
+function skeletonRows(cols,count=4){
+  return Array(count).fill('').map(()=>`<tr>${Array(cols).fill('').map(()=>`<td><div class="skeleton-cell"></div></td>`).join('')}</tr>`).join('');
+}
+
 // Verificar sesión al cargar la página
 (async()=>{
   try{
@@ -1249,9 +1357,15 @@ async function cargarPerfil(){
     currentPerfil=perfil;
     if(!perfil.aprobado){showScreen('pending');return;}
     esAdmin=perfil.rol==='admin';
-    document.getElementById('user-name').textContent=perfil.nombre?.split(' ')[0]||'Usuario';
-    document.getElementById('user-avatar').textContent=(perfil.nombre||'R')[0].toUpperCase();
-    document.getElementById('user-role').textContent=esAdmin?'Administrador':'Operario';
+    const primerNombre=perfil.nombre?.split(' ')[0]||'Usuario';
+    const inicial=(perfil.nombre||'R')[0].toUpperCase();
+    const rolLabel=esAdmin?'Administrador':'Operario';
+    document.getElementById('user-name').textContent=primerNombre;
+    document.getElementById('user-avatar').textContent=inicial;
+    document.getElementById('user-role').textContent=rolLabel;
+    document.getElementById('umenu-name').textContent=perfil.nombre||'Usuario';
+    document.getElementById('umenu-role').textContent=rolLabel;
+    document.getElementById('umenu-avatar').textContent=inicial;
     showScreen('app');
     buildNav();
     loadDashboard();
@@ -1334,33 +1448,25 @@ async function loadDashboard(){
     document.getElementById('dash-alerts').innerHTML=alerts;
 
     // Préstamos pendientes de aprobar (admin)
-    var dashPend=document.getElementById('dash-pendientes-admin');
+    const dashPend=document.getElementById('dash-pendientes-admin');
     try{
-      const resp=await sb.from('prestamos').select('id,fecha_prestamo,observaciones,usuario_id,herramienta_id').eq('estado','pendiente');
-      if(resp.error){ dashPend.innerHTML='<div class="alert alert-danger">Error query: '+resp.error.message+'</div>'; }
-      else if(resp.data&&resp.data.length>0){
-        var rows='';
-        for(var i=0;i<resp.data.length;i++){
-          var pr=resp.data[i];
-          // Obtener nombre herramienta
-          var hResp=await sb.from('herramientas').select('items(nombre)').eq('id',pr.herramienta_id).single();
-          var hNombre=(hResp.data&&hResp.data.items)?hResp.data.items.nombre:'—';
-          // Obtener nombre solicitante
-          var uResp=await sb.from('perfiles').select('nombre').eq('id',pr.usuario_id).single();
-          var uNombre=(uResp.data)?uResp.data.nombre:'—';
-          rows+='<tr>';
-          rows+='<td><div style="font-weight:500">'+hNombre+'</div></td>';
-          rows+='<td style="color:var(--muted)">'+uNombre+'</td>';
-          rows+='<td style="color:var(--muted);font-size:12px">'+fmtDate(pr.fecha_prestamo)+'</td>';
-          rows+='<td style="color:var(--muted2);font-size:12px">'+(pr.observaciones||'—')+'</td>';
-          rows+='<td style="display:flex;gap:6px">';
-          rows+='<button class="btn btn-success btn-sm" onclick="aprobarPrestamo(&apos;'+pr.id+'&apos;)">✓ Aprobar</button>';
-          rows+='<button class="btn btn-danger btn-sm" onclick="rechazarPrestamo(&apos;'+pr.id+'&apos;)">✗ Rechazar</button>';
-          rows+='</td></tr>';
-        }
+      const{data:pendData,error:pendErr}=await sb.from('prestamos')
+        .select('id,fecha_prestamo,observaciones,herramientas(items(nombre)),perfiles(nombre)')
+        .eq('estado','pendiente');
+      if(pendErr){dashPend.innerHTML='<div class="alert alert-danger">Error: '+pendErr.message+'</div>';}
+      else if(pendData&&pendData.length>0){
+        const rows=pendData.map(pr=>`<tr>
+          <td><div style="font-weight:500">${pr.herramientas?.items?.nombre||'—'}</div></td>
+          <td style="color:var(--muted)">${pr.perfiles?.nombre||'—'}</td>
+          <td style="color:var(--muted);font-size:12px">${fmtDate(pr.fecha_prestamo)}</td>
+          <td style="color:var(--muted2);font-size:12px">${pr.observaciones||'—'}</td>
+          <td style="display:flex;gap:6px">
+            <button class="btn btn-success btn-sm" onclick="aprobarPrestamo('${pr.id}')">✓ Aprobar</button>
+            <button class="btn btn-danger btn-sm" onclick="rechazarPrestamo('${pr.id}')">✗ Rechazar</button>
+          </td></tr>`).join('');
         dashPend.innerHTML='<div class="card" style="border:1px solid rgba(251,191,36,0.3)"><div class="card-header"><span class="card-title">⏳ Préstamos pendientes de aprobación</span></div><div class="table-wrap"><table><thead><tr><th>Herramienta</th><th>Solicitante</th><th>Fecha</th><th>Observaciones</th><th>Acciones</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
-      } else { dashPend.innerHTML=''; }
-    }catch(e){ dashPend.innerHTML='<div class="alert alert-danger">JS Error: '+e.message+'</div>'; }
+      }else{dashPend.innerHTML='';}
+    }catch(e){dashPend.innerHTML='<div class="alert alert-danger">Error: '+e.message+'</div>';}
   } else {
     const{data:mis}=await sb.from('prestamos').select('id').eq('usuario_id',currentUser.id).eq('estado','activo');
     const{data:misPend}=await sb.from('prestamos').select('id').eq('usuario_id',currentUser.id).eq('estado','pendiente');
@@ -1400,38 +1506,37 @@ async function loadDashboard(){
     document.getElementById('dash-mis-solicitudes').innerHTML='';
     // AUDITORÍA: Herramientas en poder de cada usuario (solo admin)
     try{
-      const{data:todosActivos}=await sb.from('prestamos').select('id,fecha_prestamo,fecha_dev_esperada,usuario_id,herramienta_id').eq('estado','activo');
+      const{data:todosActivos}=await sb.from('prestamos')
+        .select('id,fecha_prestamo,fecha_dev_esperada,usuario_id,herramientas(items(nombre)),perfiles(nombre)')
+        .eq('estado','activo');
       if(todosActivos&&todosActivos.length>0){
-        // Agrupar por usuario
-        var porUsuario={};
-        for(var ai=0;ai<todosActivos.length;ai++){
-          var uid=todosActivos[ai].usuario_id;
-          if(!porUsuario[uid]) porUsuario[uid]=[];
-          porUsuario[uid].push(todosActivos[ai]);
+        const porUsuario={};
+        for(const act of todosActivos){
+          if(!porUsuario[act.usuario_id])porUsuario[act.usuario_id]={nombre:act.perfiles?.nombre||'Desconocido',items:[]};
+          porUsuario[act.usuario_id].items.push(act);
         }
-        var auditHtml='';
-        var uids=Object.keys(porUsuario);
-        for(var ui=0;ui<uids.length;ui++){
-          var userId=uids[ui];
-          var prestamos=porUsuario[userId];
-          // Nombre del usuario
-          var uR=await sb.from('perfiles').select('nombre').eq('id',userId).single();
-          var userName=(uR.data)?uR.data.nombre:'Usuario desconocido';
-          var tRows='';
-          for(var ti=0;ti<prestamos.length;ti++){
-            var pr=prestamos[ti];
-            var hR=await sb.from('herramientas').select('items(nombre)').eq('id',pr.herramienta_id).single();
-            var toolName=(hR.data&&hR.data.items)?hR.data.items.nombre:'—';
-            tRows+='<tr><td style="font-weight:500">'+toolName+'</td>';
-            tRows+='<td style="color:var(--muted);font-size:12px">'+fmtDate(pr.fecha_prestamo)+'</td>';
-            tRows+='<td style="color:var(--muted2);font-size:12px">'+(pr.fecha_dev_esperada?fmtDate(pr.fecha_dev_esperada):'Sin fecha')+'</td></tr>';
-          }
-          auditHtml+='<div style="margin-bottom:16px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div style="width:32px;height:32px;border-radius:50%;background:var(--purple);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff">'+userName.charAt(0).toUpperCase()+'</div><div><div style="font-weight:600">'+userName+'</div><div style="color:var(--muted);font-size:11px">'+prestamos.length+' herramienta(s) en poder</div></div></div>';
-          auditHtml+='<table style="width:100%"><thead><tr><th style="text-align:left;padding:6px 8px;font-size:11px;color:var(--muted)">Herramienta</th><th style="text-align:left;padding:6px 8px;font-size:11px;color:var(--muted)">Desde</th><th style="text-align:left;padding:6px 8px;font-size:11px;color:var(--muted)">Devolver</th></tr></thead><tbody>'+tRows+'</tbody></table></div>';
+        let auditHtml='';
+        for(const[,grupo] of Object.entries(porUsuario)){
+          const tRows=grupo.items.map(pr=>`<tr>
+            <td style="font-weight:500">${pr.herramientas?.items?.nombre||'—'}</td>
+            <td style="color:var(--muted);font-size:12px">${fmtDate(pr.fecha_prestamo)}</td>
+            <td style="color:var(--muted2);font-size:12px">${pr.fecha_dev_esperada?fmtDate(pr.fecha_dev_esperada):'Sin fecha'}</td>
+          </tr>`).join('');
+          auditHtml+=`<div style="margin-bottom:16px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+              <div style="width:32px;height:32px;border-radius:50%;background:var(--purple);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff">${grupo.nombre.charAt(0).toUpperCase()}</div>
+              <div><div style="font-weight:600">${grupo.nombre}</div><div style="color:var(--muted);font-size:11px">${grupo.items.length} herramienta(s) en poder</div></div>
+            </div>
+            <table style="width:100%"><thead><tr>
+              <th style="text-align:left;padding:6px 8px;font-size:11px;color:var(--muted)">Herramienta</th>
+              <th style="text-align:left;padding:6px 8px;font-size:11px;color:var(--muted)">Desde</th>
+              <th style="text-align:left;padding:6px 8px;font-size:11px;color:var(--muted)">Devolver</th>
+            </tr></thead><tbody>${tRows}</tbody></table>
+          </div>`;
         }
         document.getElementById('dash-auditoria-admin').innerHTML='<div class="card"><div class="card-header"><span class="card-title">📋 Auditoría — Herramientas por usuario</span></div><div style="padding:16px">'+auditHtml+'</div></div>';
-      } else { document.getElementById('dash-auditoria-admin').innerHTML=''; }
-    }catch(e){ document.getElementById('dash-auditoria-admin').innerHTML=''; }
+      }else{document.getElementById('dash-auditoria-admin').innerHTML='';}
+    }catch(e){document.getElementById('dash-auditoria-admin').innerHTML='';}
   }
 
   const{data:rec}=await sb.from('prestamos').select(`id,fecha_prestamo,estado,herramientas(items(nombre)),perfiles(nombre)`).order('fecha_prestamo',{ascending:false}).limit(6);
@@ -1443,6 +1548,7 @@ async function loadDashboard(){
 
 // ── HERRAMIENTAS ──
 async function loadHerramientas(){
+  document.getElementById('tabla-herramientas').innerHTML=skeletonRows(5);
   const{data}=await sb.from('herramientas').select(`id,codigo_qr,estado,items(nombre,categoria,descripcion,imagen_url)`).order('created_at',{ascending:false,foreignTable:'items'});
   herramientas=data||[];
   renderHerramientas(herramientas);
@@ -1716,6 +1822,7 @@ async function imprimirTodosQR(){
 // ── INVENTARIO ──
 let inventarioReal = [];
 async function loadInventario(){
+  document.getElementById('tabla-inventario').innerHTML=skeletonRows(6);
   const{data}=await sb.from('fungibles_accesorios').select(`id,stock_actual,stock_minimo_1,stock_minimo_2,stock_minimo_3,unidad_medida,maquina_asociada,items(id,nombre,categoria,tipo,imagen_url)`);
   inventarioReal = data || [];
   renderInventario(inventarioReal);
@@ -2046,6 +2153,7 @@ function stopScan(){if(html5Qr){html5Qr.stop().catch(()=>{});html5Qr=null;}}
 // ── SOLICITUDES ──
 let todasSolicitudes = [];
 async function loadSolicitudes(){
+  document.getElementById('tabla-solicitudes').innerHTML=skeletonRows(8);
   const q=sb.from('solicitudes').select(`*`);
   if(!esAdmin)q.eq('usuario_id',currentUser.id);
   const{data, error}=await q.order('created_at',{ascending:false});
@@ -2191,6 +2299,8 @@ async function responderSolicitud(estado){
 
 // ── HISTORIAL ──
 let currentHistTab = 'prestamos';
+let todosHistorialInv = [];
+
 function setHistTab(t){
   currentHistTab=t;
   document.getElementById('tab-hist-prestamos').className= t==='prestamos'?'btn btn-primary':'btn btn-ghost';
@@ -2199,35 +2309,79 @@ function setHistTab(t){
   document.getElementById('hist-inventario-view').style.display= t==='inventario'?'block':'none';
   loadHistorial();
 }
+
 async function loadHistorial(){
   if(currentHistTab==='prestamos'){
+    document.getElementById('tabla-historial').innerHTML=skeletonRows(5);
     const q=sb.from('prestamos').select(`id,fecha_prestamo,fecha_dev_real,fecha_dev_esperada,estado,herramientas(items(nombre)),perfiles(nombre)`).order('fecha_prestamo',{ascending:false});
     if(!esAdmin)q.eq('usuario_id',currentUser.id);
     const{data}=await q;
     todosHistorial=data||[];
-    const tb=document.getElementById('tabla-historial');
-    if(!todosHistorial.length){tb.innerHTML=`<tr><td colspan="5"><div class="empty">Sin registros</div></td></tr>`;return;}
-    tb.innerHTML=todosHistorial.map((p,i)=>`<tr style="animation:fadeUp .3s ease ${i*0.03}s both">
-      <td><div style="font-weight:500">${p.perfiles?.nombre||'—'}</div></td>
-      <td style="color:var(--muted)">${p.herramientas?.items?.nombre||'—'}</td>
-      <td style="color:var(--muted2);font-size:12px">${fmtDate(p.fecha_prestamo)}</td>
-      <td style="color:var(--muted2);font-size:12px">${p.fecha_dev_real?fmtDate(p.fecha_dev_real):'<span style="color:var(--warn)">Pendiente</span>'}</td>
-      <td>${badgeEstado(p.estado)}</td>
-    </tr>`).join('');
+    renderHistorialPrestamos(todosHistorial);
   } else {
+    document.getElementById('tabla-historial-inv').innerHTML=skeletonRows(3);
     let q = sb.from('solicitudes').select('motivo,descripcion,created_at,estado').in('estado',['entregada']).order('created_at',{ascending:false});
     if(!esAdmin)q.eq('usuario_id',currentUser.id);
     const{data}=await q;
-    const tb=document.getElementById('tabla-historial-inv');
-    if(!data?.length){tb.innerHTML=`<tr><td colspan="3"><div class="empty">Sin movimientos registrados.</div></td></tr>`;return;}
-    tb.innerHTML=data.map((h,i)=>`<tr style="animation:fadeUp .3s ease ${i*0.03}s both">
-      <td><span class="badge ${h.motivo==='movimiento_stock'?'badge-warn':'badge-success'}">${h.motivo==='movimiento_stock'?'⚙️ Ajuste Admin':'✅ Entregado Operario'}</span></td>
-      <td><strong>${h.descripcion.split('|||')[0]}</strong></td>
-      <td style="color:var(--muted);font-size:12px">${fmtDate(h.created_at)}</td>
-    </tr>`).join('');
+    todosHistorialInv=data||[];
+    renderHistorialInv(todosHistorialInv);
   }
 }
-function filtrarHistorial(estado){ /* se omitió filtrado local para simplificar, se mantiene tabulacion */ }
+
+function renderHistorialPrestamos(data){
+  const tb=document.getElementById('tabla-historial');
+  if(!data.length){tb.innerHTML=`<tr><td colspan="5"><div class="empty">Sin registros</div></td></tr>`;return;}
+  tb.innerHTML=data.map((p,i)=>`<tr style="animation:fadeUp .3s ease ${i*0.03}s both">
+    <td><div style="font-weight:500">${p.perfiles?.nombre||'—'}</div></td>
+    <td style="color:var(--muted)">${p.herramientas?.items?.nombre||'—'}</td>
+    <td style="color:var(--muted2);font-size:12px">${fmtDate(p.fecha_prestamo)}</td>
+    <td style="color:var(--muted2);font-size:12px">${p.fecha_dev_real?fmtDate(p.fecha_dev_real):'<span style="color:var(--warn)">Pendiente</span>'}</td>
+    <td>${badgeEstado(p.estado)}</td>
+  </tr>`).join('');
+}
+
+function renderHistorialInv(data){
+  const tb=document.getElementById('tabla-historial-inv');
+  if(!data?.length){tb.innerHTML=`<tr><td colspan="3"><div class="empty">Sin movimientos registrados.</div></td></tr>`;return;}
+  tb.innerHTML=data.map((h,i)=>`<tr style="animation:fadeUp .3s ease ${i*0.03}s both">
+    <td><span class="badge ${h.motivo==='movimiento_stock'?'badge-warn':'badge-success'}">${h.motivo==='movimiento_stock'?'⚙️ Ajuste Admin':'✅ Entregado Operario'}</span></td>
+    <td><strong>${h.descripcion.split('|||')[0]}</strong></td>
+    <td style="color:var(--muted);font-size:12px">${fmtDate(h.created_at)}</td>
+  </tr>`).join('');
+}
+
+function filtrarHistorial(){
+  const q=(document.getElementById('hist-search')?.value||'').toLowerCase();
+  const desde=document.getElementById('hist-desde')?.value;
+  const hasta=document.getElementById('hist-hasta')?.value;
+  if(currentHistTab==='prestamos'){
+    const f=todosHistorial.filter(p=>{
+      const mQ=!q||(p.herramientas?.items?.nombre||'').toLowerCase().includes(q)||(p.perfiles?.nombre||'').toLowerCase().includes(q);
+      const fecha=new Date(p.fecha_prestamo);
+      const mD=!desde||fecha>=new Date(desde);
+      const mH=!hasta||fecha<=new Date(hasta+'T23:59:59');
+      return mQ&&mD&&mH;
+    });
+    renderHistorialPrestamos(f);
+  }else{
+    const f=todosHistorialInv.filter(h=>{
+      const mQ=!q||h.descripcion.toLowerCase().includes(q);
+      const fecha=new Date(h.created_at);
+      const mD=!desde||fecha>=new Date(desde);
+      const mH=!hasta||fecha<=new Date(hasta+'T23:59:59');
+      return mQ&&mD&&mH;
+    });
+    renderHistorialInv(f);
+  }
+}
+
+function limpiarFiltrosHistorial(){
+  const s=document.getElementById('hist-search');
+  const d=document.getElementById('hist-desde');
+  const h=document.getElementById('hist-hasta');
+  if(s)s.value='';if(d)d.value='';if(h)h.value='';
+  filtrarHistorial();
+}
 
 // Bug 4: Vaciar historial (solo admin, solo registros completados)
 async function vaciarHistorial(){
@@ -2261,8 +2415,21 @@ async function eliminarSolicitud(id){
 }
 
 // ── USUARIOS ──
+let todosUsuarios = [];
+
 async function loadUsuarios(){
+  document.getElementById('tabla-usuarios').innerHTML=skeletonRows(6);
   const{data}=await sb.from('perfiles').select('*').order('created_at',{ascending:false});
+  todosUsuarios=data||[];
+  renderUsuarios(todosUsuarios);
+}
+
+function filtrarUsuarios(q){
+  const f=todosUsuarios.filter(u=>(u.nombre||'').toLowerCase().includes(q.toLowerCase())||(u.identificacion||'').toLowerCase().includes(q.toLowerCase())||(u.email||'').toLowerCase().includes(q.toLowerCase()));
+  renderUsuarios(f);
+}
+
+function renderUsuarios(data){
   const tb=document.getElementById('tabla-usuarios');
   if(!data?.length){tb.innerHTML=`<tr><td colspan="6"><div class="empty"><span class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><div class="empty-title">Sin usuarios registrados</div></div></td></tr>`;return;}
   tb.innerHTML=data.map((u,i)=>`<tr style="animation:fadeUp .3s ease ${i*0.04}s both">
@@ -2277,6 +2444,7 @@ async function loadUsuarios(){
     </td>
   </tr>`).join('');
 }
+
 async function aprobarUsuario(id){await sb.from('perfiles').update({aprobado:true}).eq('id',id);toast('✅ Usuario aprobado');loadUsuarios();}
 async function toggleActivo(id,actual){await sb.from('perfiles').update({activo:!actual}).eq('id',id);toast('Usuario actualizado');loadUsuarios();}
 
