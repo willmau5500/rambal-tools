@@ -71,7 +71,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .animate-fadeUp{animation:fadeUp .5s ease forwards}
 .animate-fadeIn{animation:fadeIn .3s ease forwards}
 .animate-scaleIn{animation:scaleIn .25s ease forwards}
-.d1{animation-delay:.05s}.d2{animation-delay:.1s}.d3{animation-delay:.15s}.d4{animation-delay:.2s}.d5{animation-delay:.25s}
+.d1{animation-delay:.05s}.d2{animation-delay:.1s}.d3{animation-delay:.15s}.d4{animation-delay:.2s}.d5{animation-delay:.25s}.d6{animation-delay:.3s}.d7{animation-delay:.35s}
 
 /* ── AUTH SCREEN ── */
 #auth-screen{
@@ -312,6 +312,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .kpi-dot-green{background:var(--success);box-shadow:0 0 8px rgba(52,211,153,0.4)}
 .kpi-dot-yellow{background:var(--warn);box-shadow:0 0 8px rgba(251,191,36,0.4)}
 .kpi-dot-red{background:var(--danger);box-shadow:0 0 8px rgba(248,113,113,0.4)}
+.kpi-dot-blue{background:var(--info);box-shadow:0 0 8px rgba(96,165,250,0.4)}
 .kpi-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:8px}
 .kpi-val{font-family:var(--display);font-size:32px;font-weight:700;line-height:1;color:var(--text)}
 
@@ -798,6 +799,7 @@ tbody tr:hover td{background:linear-gradient(90deg, rgba(124,58,237,0.08) 0%, tr
       <div class="kpi-grid" id="kpi-grid"></div>
       <div id="dash-alerts"></div>
       <div id="dash-pendientes-admin"></div>
+      <div id="dash-devoluciones-admin"></div>
       <div id="dash-mis-herramientas"></div>
       <div id="dash-mis-solicitudes"></div>
       <div id="dash-auditoria-admin"></div>
@@ -986,8 +988,11 @@ tbody tr:hover td{background:linear-gradient(90deg, rgba(124,58,237,0.08) 0%, tr
 <!-- Fungible -->
 <div class="modal-overlay" id="modal-fungible">
   <div class="modal">
-    <div class="modal-header"><span class="modal-title">📦 Nuevo ítem de inventario</span><button class="modal-close" onclick="closeModal('modal-fungible')">×</button></div>
+    <div class="modal-header"><span class="modal-title" id="f-modal-title">📦 Nuevo ítem de inventario</span><button class="modal-close" onclick="closeModal('modal-fungible')">×</button></div>
     <div class="modal-body">
+      <input type="hidden" id="f-edit-fid">
+      <input type="hidden" id="f-edit-iid">
+      <input type="hidden" id="f-edit-img">
       <div class="grid-2">
         <div class="field"><label>Nombre</label><input type="text" id="f-nombre" placeholder="Ej: Brocas HSS Set"></div>
         <div class="field"><label>Tipo</label>
@@ -999,7 +1004,7 @@ tbody tr:hover td{background:linear-gradient(90deg, rgba(124,58,237,0.08) 0%, tr
         <div class="field"><label>Máquina asociada</label><input type="text" id="f-maquina" placeholder="Ej: Torno CNC (opcional)"></div>
       </div>
       <div class="grid-2">
-        <div class="field"><label>Stock inicial</label><input type="number" id="f-stock" value="0" min="0"></div>
+        <div class="field" id="f-stock-field"><label>Stock inicial</label><input type="number" id="f-stock" value="0" min="0"></div>
         <div class="field"><label>Unidad de medida</label><input type="text" id="f-unidad" value="unidad" placeholder="unidad, caja, litro..."></div>
       </div>
       <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-top:8px">
@@ -1010,14 +1015,14 @@ tbody tr:hover td{background:linear-gradient(90deg, rgba(124,58,237,0.08) 0%, tr
         </div>
         <div class="field"><label>🟡 Preventivo (aviso anticipado)</label><input type="number" id="f-min3" value="20" min="0"></div>
       </div>
-      <div class="field" style="margin-top:8px">
+      <div class="field" style="margin-top:8px" id="f-foto-wrap">
         <label>Foto del ítem (Opcional)</label>
         <input type="file" id="f-foto" accept="image/*" style="background:var(--bg3);border:1px dashed var(--border);padding:8px;border-radius:var(--r-sm);color:var(--text);font-size:12px;cursor:pointer;width:100%">
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-fungible')">Cancelar</button>
-      <button class="btn btn-primary" onclick="guardarFungible()">Registrar ítem</button>
+      <button class="btn btn-primary" id="f-modal-btn" onclick="guardarFungible()">Registrar ítem</button>
     </div>
   </div>
 </div>
@@ -1089,14 +1094,34 @@ tbody tr:hover td{background:linear-gradient(90deg, rgba(124,58,237,0.08) 0%, tr
         </select>
       </div>
       <div class="field"><label>Cantidad</label><input type="number" id="gs-cantidad" min="0" placeholder="Ej: 5"></div>
+      <div class="field"><label>Fecha del movimiento</label><input type="date" id="gs-fecha" class="date-input" style="width:100%"></div>
+      <div id="gs-lote-wrap" style="display:block;background:var(--bg3);padding:10px;border-radius:var(--r-sm);margin-top:4px;border:1px solid var(--border)">
+        <div class="field" style="margin-bottom:0"><label>Lote / Proveedor <span style="color:var(--muted);font-weight:400">(opcional)</span></label><input type="text" id="gs-lote" placeholder="Ej: Lote #001 — Proveedor XYZ"></div>
+      </div>
       <div id="gs-detalles-extra" style="display:none;background:var(--bg3);padding:10px;border-radius:var(--r-sm);margin-top:10px;border:1px solid var(--border)">
-        <div class="field"><label>Destino o Justificación</label><input type="text" id="gs-motivo" placeholder="Ej: Mantenimiento Máquina 2"></div>
+        <div class="field" style="margin-bottom:0"><label>Destino o Justificación</label><input type="text" id="gs-motivo" placeholder="Ej: Mantenimiento Máquina 2"></div>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-gestion-stock')">Cancelar</button>
       <button class="btn btn-primary" id="gs-btn" onclick="ejecutarGestionStock()">➕ Ingresar Stock</button>
     </div>
+  </div>
+</div>
+
+<!-- Historial de ítem -->
+<div class="modal-overlay" id="modal-hist-item">
+  <div class="modal" style="max-width:580px">
+    <div class="modal-header"><span class="modal-title" id="hist-item-title">Historial de movimientos</span><button class="modal-close" onclick="closeModal('modal-hist-item')">×</button></div>
+    <div class="modal-body" style="padding:0">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Tipo</th><th>Detalle</th><th>Fecha y hora</th></tr></thead>
+          <tbody id="tabla-hist-item"><tr><td colspan="3"><div class="empty" style="padding:32px">Sin movimientos</div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-hist-item')">Cerrar</button></div>
   </div>
 </div>
 
@@ -1422,12 +1447,13 @@ async function loadDashboard(){
   document.getElementById('dash-saludo').textContent='Bienvenido a TOOLS — Área de Producción';
 
   if(esAdmin){
-    const[{data:h},{data:p},{data:pend},{data:f},{data:s}]=await Promise.all([
+    const[{data:h},{data:p},{data:pend},{data:f},{data:s},{data:devPend}]=await Promise.all([
       sb.from('herramientas').select('estado'),
       sb.from('prestamos').select('id').eq('estado','activo'),
       sb.from('prestamos').select('id').eq('estado','pendiente'),
       sb.from('fungibles_accesorios').select('stock_actual,stock_minimo_1'),
       sb.from('solicitudes').select('id').eq('estado','pendiente'),
+      sb.from('prestamos').select('id').eq('estado','pendiente_devolucion'),
     ]);
     const total=h?.length||0;
     const dispon=h?.filter(x=>x.estado==='disponible').length||0;
@@ -1440,11 +1466,13 @@ async function loadDashboard(){
       <div class="kpi-card kpi-danger d4"><div class="kpi-dot kpi-dot-red"></div><div class="kpi-label">Stock crítico</div><div class="kpi-val">${criticos}</div></div>
       <div class="kpi-card kpi-accent d5"><div class="kpi-dot kpi-dot-purple"></div><div class="kpi-label">Solicitudes pendientes</div><div class="kpi-val">${s?.length||0}</div></div>
       <div class="kpi-card kpi-warn d6"><div class="kpi-dot kpi-dot-yellow"></div><div class="kpi-label">Préstamos por aprobar</div><div class="kpi-val">${pend?.length||0}</div></div>
+      <div class="kpi-card d7" style="border:1px solid rgba(96,165,250,0.2);background:rgba(96,165,250,0.04)"><div class="kpi-dot kpi-dot-blue"></div><div class="kpi-label">Devoluciones pendientes</div><div class="kpi-val" style="color:var(--info)">${devPend?.length||0}</div></div>
     `;
     let alerts='';
     if(criticos>0)alerts+=`<div class="alert alert-danger">🔴 <div><strong>Stock crítico:</strong> ${criticos} ítem(s) requieren reposición urgente.</div></div>`;
     if((s?.length||0)>0)alerts+=`<div class="alert alert-warn">📝 <div><strong>${s.length} solicitud(es) pendiente(s)</strong> esperan respuesta del administrador.</div></div>`;
     if((pend?.length||0)>0)alerts+=`<div class="alert alert-warn">🔧 <div><strong>${pend.length} préstamo(s) pendiente(s)</strong> esperan tu aprobación.</div></div>`;
+    if((devPend?.length||0)>0)alerts+=`<div class="alert" style="background:rgba(96,165,250,0.07);border-color:rgba(96,165,250,0.3)">📥 <div><strong>${devPend.length} devolución(es) pendiente(s)</strong> requieren confirmación de recepción física.</div></div>`;
     document.getElementById('dash-alerts').innerHTML=alerts;
 
     // Préstamos pendientes de aprobar (admin)
@@ -1467,6 +1495,23 @@ async function loadDashboard(){
         dashPend.innerHTML='<div class="card" style="border:1px solid rgba(251,191,36,0.3)"><div class="card-header"><span class="card-title">⏳ Préstamos pendientes de aprobación</span></div><div class="table-wrap"><table><thead><tr><th>Herramienta</th><th>Solicitante</th><th>Fecha</th><th>Observaciones</th><th>Acciones</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
       }else{dashPend.innerHTML='';}
     }catch(e){dashPend.innerHTML='<div class="alert alert-danger">Error: '+e.message+'</div>';}
+
+    // Devoluciones pendientes de confirmar (admin)
+    const dashDev=document.getElementById('dash-devoluciones-admin');
+    try{
+      const{data:devData,error:devErr}=await sb.from('prestamos')
+        .select('id,herramienta_id,fecha_prestamo,herramientas(items(nombre)),usuario:perfiles!usuario_id(nombre)')
+        .eq('estado','pendiente_devolucion');
+      if(devErr){dashDev.innerHTML='<div class="alert alert-danger">Error: '+devErr.message+'</div>';}
+      else if(devData&&devData.length>0){
+        const rows=devData.map(pr=>`<tr>
+          <td><div style="font-weight:500">${pr.herramientas?.items?.nombre||'—'}</div></td>
+          <td style="color:var(--muted)">${pr.usuario?.nombre||'—'}</td>
+          <td style="color:var(--muted);font-size:12px">${fmtDate(pr.fecha_prestamo)}</td>
+          <td><button class="btn btn-success btn-sm" onclick="aceptarDevolucion('${pr.id}','${pr.herramienta_id}')">✅ Confirmar recepción</button></td></tr>`).join('');
+        dashDev.innerHTML='<div class="card" style="border:1px solid rgba(96,165,250,0.3)"><div class="card-header"><span class="card-title">📥 Devoluciones por confirmar</span></div><div class="table-wrap"><table><thead><tr><th>Herramienta</th><th>Operario</th><th>Fecha préstamo</th><th>Acción</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+      }else{dashDev.innerHTML='';}
+    }catch(e){dashDev.innerHTML='<div class="alert alert-danger">Error: '+e.message+'</div>';}
   } else {
     const{data:mis}=await sb.from('prestamos').select('id').eq('usuario_id',currentUser.id).eq('estado','activo');
     const{data:misPend}=await sb.from('prestamos').select('id').eq('usuario_id',currentUser.id).eq('estado','pendiente');
@@ -1476,6 +1521,7 @@ async function loadDashboard(){
     `;
     document.getElementById('dash-alerts').innerHTML='';
     document.getElementById('dash-pendientes-admin').innerHTML='';
+    document.getElementById('dash-devoluciones-admin').innerHTML='';
   }
 
   // Mis herramientas en poder (operarios)
@@ -1722,13 +1768,23 @@ async function eliminarHerramienta(id){
     if(!confirm(`Esta herramienta tiene ${activos.length} préstamo(s) activo(s). ¿Eliminar de todas formas?`))return;
   }
 
-  // Borrar todos los préstamos asociados
-  await sb.from('prestamos').delete().eq('herramienta_id',id);
+  // Borrar préstamos cerrados (devuelto/rechazado), luego los activos
+  await sb.from('prestamos').delete().eq('herramienta_id',id).in('estado',['devuelto','rechazado']);
+  await sb.from('prestamos').delete().eq('herramienta_id',id).in('estado',['activo','pendiente','pendiente_devolucion']);
 
-  // Verificar que no queden (RLS puede bloquear el delete silenciosamente)
-  const{data:restantes}=await sb.from('prestamos').select('id').eq('herramienta_id',id);
+  // Si RLS bloqueó algún delete, desvincular el historial restante (herramienta_id → null)
+  const{data:restantes}=await sb.from('prestamos').select('id,estado').eq('herramienta_id',id);
   if(restantes?.length){
-    return toast('❌ No se puede eliminar: quedan préstamos asociados que no tienen permiso de borrar. Devuelva o cierre esos préstamos primero.');
+    const bloqueantes=restantes.filter(r=>['activo','pendiente','pendiente_devolucion'].includes(r.estado));
+    if(bloqueantes.length){
+      return toast('❌ No se puede eliminar: hay préstamo(s) activo(s) o pendientes que no se pudieron borrar. Ciérrelos primero.');
+    }
+    // Solo quedan históricos devueltos que RLS no deja borrar → desvincular
+    const ids=restantes.map(r=>r.id);
+    await sb.from('prestamos').update({herramienta_id:null}).in('id',ids);
+    // Verificar que la desvinculación funcionó
+    const{data:aun}=await sb.from('prestamos').select('id').eq('herramienta_id',id);
+    if(aun?.length) return toast('❌ No se pudo desvincular el historial. Revise los permisos RLS en Supabase.');
   }
 
   const{data:herr}=await sb.from('herramientas').select('item_id').eq('id',id).single();
@@ -1862,8 +1918,13 @@ function renderInventario(data) {
       <td><span style="font-weight:700;font-size:16px;font-family:var(--display)">${f.stock_actual}</span></td>
       <td><div class="stock-bar-wrap"><div class="stock-bar"><div class="stock-bar-fill" style="width:${pct}%;background:${barColor}"></div></div><span class="stock-num" style="color:${barColor}">${nivel}</span></div></td>
       <td>
-        ${esAdmin?`<button class="btn btn-ghost btn-sm" onclick="abrirGestionStock('${f.id}','${f.items?.nombre?.replace(/'/g,"\\'").replace(/"/g,"&quot;")}',${f.stock_actual})">📦 Gestionar</button>`:
-        `<button class="btn btn-primary btn-sm" onclick="solicitarItemDesdeInventario('${f.items?.nombre?.replace(/'/g,"\\'").replace(/"/g,"&quot;")}')">🛒 Solicitar</button>`}
+        ${esAdmin?(()=>{const sn=f.id;return`<div style="display:flex;gap:4px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" onclick="abrirGestionStock('${f.id}','${(f.items?.nombre||'').replace(/'/g,"\\'").replace(/"/g,"&quot;")}',${f.stock_actual})" title="Gestionar stock"><i class='bx bxs-package'></i> Stock</button>
+          <button class="btn btn-ghost btn-sm" onclick="editarItemInventario('${f.id}')" title="Editar ítem"><i class='bx bxs-edit'></i></button>
+          <button class="btn btn-ghost btn-sm" onclick="verMovimientosItem('${(f.items?.nombre||'').replace(/'/g,"\\'").replace(/"/g,"&quot;")}')" title="Ver historial"><i class='bx bxs-time-five'></i></button>
+          <button class="btn btn-danger btn-sm" onclick="eliminarItemInventario('${f.id}','${f.items?.id||''}')" title="Eliminar ítem"><i class='bx bxs-trash'></i></button>
+        </div>`})():
+        `<button class="btn btn-primary btn-sm" onclick="solicitarItemDesdeInventario('${(f.items?.nombre||'').replace(/'/g,"\\'").replace(/"/g,"&quot;")}')"><i class='bx bx-cart'></i> Solicitar</button>`}
       </td>
     </tr>`;
   }).join('');
@@ -1875,47 +1936,135 @@ function filtrarInventario(q) {
   renderInventario(f);
 }
 
-function openModalFungible(){openModal('modal-fungible')}
+function openModalFungible(){
+  document.getElementById('f-edit-fid').value='';
+  document.getElementById('f-edit-iid').value='';
+  document.getElementById('f-edit-img').value='';
+  document.getElementById('f-modal-title').textContent='📦 Nuevo ítem de inventario';
+  document.getElementById('f-modal-btn').textContent='Registrar ítem';
+  document.getElementById('f-nombre').value='';
+  document.getElementById('f-tipo').value='fungible';
+  document.getElementById('f-cat').value='';
+  document.getElementById('f-maquina').value='';
+  document.getElementById('f-stock').value='0';
+  document.getElementById('f-unidad').value='unidad';
+  document.getElementById('f-min1').value='5';
+  document.getElementById('f-min2').value='10';
+  document.getElementById('f-min3').value='20';
+  document.getElementById('f-foto').value='';
+  document.getElementById('f-stock-field').style.display='block';
+  openModal('modal-fungible');
+}
+
+function editarItemInventario(fId){
+  const f=inventarioReal.find(x=>x.id===fId);
+  if(!f)return toast('❌ Ítem no encontrado');
+  document.getElementById('f-edit-fid').value=f.id;
+  document.getElementById('f-edit-iid').value=f.items?.id||'';
+  document.getElementById('f-edit-img').value=f.items?.imagen_url||'';
+  document.getElementById('f-modal-title').textContent='✏️ Editar ítem';
+  document.getElementById('f-modal-btn').textContent='Guardar cambios';
+  document.getElementById('f-nombre').value=f.items?.nombre||'';
+  document.getElementById('f-tipo').value=f.items?.tipo||'fungible';
+  document.getElementById('f-cat').value=f.items?.categoria||'';
+  document.getElementById('f-maquina').value=f.maquina_asociada||'';
+  document.getElementById('f-unidad').value=f.unidad_medida||'unidad';
+  document.getElementById('f-min1').value=f.stock_minimo_1||5;
+  document.getElementById('f-min2').value=f.stock_minimo_2||10;
+  document.getElementById('f-min3').value=f.stock_minimo_3||20;
+  document.getElementById('f-foto').value='';
+  document.getElementById('f-stock-field').style.display='none';
+  openModal('modal-fungible');
+}
+
+async function eliminarItemInventario(fId, iId){
+  const item=inventarioReal.find(x=>x.id===fId);
+  const nombre=item?.items?.nombre||'ítem';
+  if(!confirm(`¿Eliminar "${nombre}" del inventario?\n\nEsta acción no se puede deshacer.`))return;
+
+  const{data:pendSol}=await sb.from('solicitudes').select('id').in('estado',['pendiente','aprobada','adquirida']).ilike('descripcion',`%${nombre}%`);
+  if(pendSol?.length){
+    if(!confirm(`Hay ${pendSol.length} solicitud(es) pendiente(s) que mencionan este ítem. ¿Continuar de todas formas?`))return;
+  }
+
+  const{error:e1}=await sb.from('fungibles_accesorios').delete().eq('id',fId);
+  if(e1)return toast('❌ '+e1.message);
+  if(iId)await sb.from('items').delete().eq('id',iId);
+  toast('✅ Ítem eliminado del inventario');
+  loadInventario();
+}
+
+async function verMovimientosItem(nombre){
+  document.getElementById('hist-item-title').textContent='Movimientos — '+nombre;
+  document.getElementById('tabla-hist-item').innerHTML=skeletonRows(3,5);
+  openModal('modal-hist-item');
+  const{data}=await sb.from('solicitudes')
+    .select('motivo,descripcion,created_at,usuario_id')
+    .eq('estado','entregada')
+    .ilike('descripcion',`%${nombre}%`)
+    .order('created_at',{ascending:false})
+    .limit(60);
+  const tb=document.getElementById('tabla-hist-item');
+  if(!data?.length){tb.innerHTML=`<tr><td colspan="3"><div class="empty" style="padding:32px 20px">Sin movimientos registrados para este ítem</div></td></tr>`;return;}
+  tb.innerHTML=data.map(h=>{
+    const detalle=h.descripcion.split('|||')[0];
+    const esAdmin2=h.motivo==='movimiento_stock';
+    return`<tr>
+      <td style="white-space:nowrap"><span class="badge ${esAdmin2?'badge-warn':'badge-success'}">${esAdmin2?'⚙️ Admin':'✅ Entregado'}</span></td>
+      <td style="font-size:12px;line-height:1.5;max-width:300px">${detalle}</td>
+      <td style="color:var(--muted);font-size:11px;white-space:nowrap">${fmtDateTime(h.created_at)}</td>
+    </tr>`;
+  }).join('');
+}
+
 async function guardarFungible(){
-  const nombre=document.getElementById('f-nombre').value;
+  const isEditing=!!document.getElementById('f-edit-fid').value;
+  const nombre=document.getElementById('f-nombre').value.trim();
   const tipo=document.getElementById('f-tipo').value;
-  const cat=document.getElementById('f-cat').value;
-  const maq=document.getElementById('f-maquina').value;
-  const stock=parseInt(document.getElementById('f-stock').value)||0;
-  const unidad=document.getElementById('f-unidad').value||'unidad';
+  const cat=document.getElementById('f-cat').value.trim();
+  const maq=document.getElementById('f-maquina').value.trim();
+  const unidad=document.getElementById('f-unidad').value.trim()||'unidad';
   const min1=parseInt(document.getElementById('f-min1').value)||5;
   const min2=parseInt(document.getElementById('f-min2').value)||10;
   const min3=parseInt(document.getElementById('f-min3').value)||20;
   const photoInput=document.getElementById('f-foto');
-  
+
   if(!nombre)return toast('⚠️ Ingrese el nombre');
-  
-  const btn=document.querySelector('#modal-fungible .btn-primary');
+
+  const btn=document.getElementById('f-modal-btn');
   btn.disabled=true;btn.textContent='Guardando...';
 
-  let imagen_url=null;
+  let imagen_url=isEditing?(document.getElementById('f-edit-img').value||null):null;
   if(photoInput.files.length>0){
     let file=photoInput.files[0];
-    toast('⏳ Optimizando y comprimiendo foto...');
-    file = await comprimirImagen(file);
+    toast('⏳ Optimizando foto...');
+    file=await comprimirImagen(file);
     const fname=`rep_${Date.now()}.${Math.floor(Math.random()*1000)}.jpg`;
-    const{error:eUpload}=await sb.storage.from('imagenes_herramientas').upload(fname,file); // Usamos mismo bucket
-    if(eUpload){
-      toast('❌ Error subiendo foto: '+eUpload.message);
-      btn.disabled=false;btn.textContent='Registrar ítem';
-      return;
-    }
+    const{error:eUpload}=await sb.storage.from('imagenes_herramientas').upload(fname,file);
+    if(eUpload){toast('❌ Error subiendo foto: '+eUpload.message);btn.disabled=false;btn.textContent=isEditing?'Guardar cambios':'Registrar ítem';return;}
     const{data:pub}=sb.storage.from('imagenes_herramientas').getPublicUrl(fname);
     imagen_url=pub.publicUrl;
   }
 
-  const{data:item,error:e1}=await sb.from('items').insert({nombre,categoria:cat,tipo,activo:true,imagen_url}).select().single();
-  if(e1){btn.disabled=false;btn.textContent='Registrar ítem';return toast('❌ '+e1.message);}
-  const{error:e2}=await sb.from('fungibles_accesorios').insert({item_id:item.id,stock_actual:stock,stock_minimo_1:min1,stock_minimo_2:min2,stock_minimo_3:min3,unidad_medida:unidad,maquina_asociada:maq||null});
-  btn.disabled=false;btn.textContent='Registrar ítem';
-  if(e2)return toast('❌ '+e2.message);
-  
-  toast('✅ Ítem registrado en inventario');
+  if(isEditing){
+    const fId=document.getElementById('f-edit-fid').value;
+    const iId=document.getElementById('f-edit-iid').value;
+    const{error:e1}=await sb.from('items').update({nombre,categoria:cat,tipo,imagen_url}).eq('id',iId);
+    if(e1){btn.disabled=false;btn.textContent='Guardar cambios';return toast('❌ '+e1.message);}
+    const{error:e2}=await sb.from('fungibles_accesorios').update({unidad_medida:unidad,maquina_asociada:maq||null,stock_minimo_1:min1,stock_minimo_2:min2,stock_minimo_3:min3}).eq('id',fId);
+    btn.disabled=false;btn.textContent='Guardar cambios';
+    if(e2)return toast('❌ '+e2.message);
+    toast('✅ Ítem actualizado');
+  } else {
+    const stock=parseInt(document.getElementById('f-stock').value)||0;
+    const{data:item,error:e1}=await sb.from('items').insert({nombre,categoria:cat,tipo,activo:true,imagen_url}).select().single();
+    if(e1){btn.disabled=false;btn.textContent='Registrar ítem';return toast('❌ '+e1.message);}
+    const{error:e2}=await sb.from('fungibles_accesorios').insert({item_id:item.id,stock_actual:stock,stock_minimo_1:min1,stock_minimo_2:min2,stock_minimo_3:min3,unidad_medida:unidad,maquina_asociada:maq||null});
+    btn.disabled=false;btn.textContent='Registrar ítem';
+    if(e2)return toast('❌ '+e2.message);
+    toast('✅ Ítem registrado en inventario');
+  }
+
   document.getElementById('f-foto').value='';
   closeModal('modal-fungible');
   loadInventario();
@@ -1928,9 +2077,20 @@ function solicitarItemDesdeInventario(nombre){
 function toggleGestionMotivo(val){
   const btn=document.getElementById('gs-btn');
   const details=document.getElementById('gs-detalles-extra');
-  if(val==='ingresar'){btn.textContent='➕ Ingresar Stock'; details.style.display='none';}
-  else if(val==='consumir'){btn.textContent='➖ Consumir/Entregar'; details.style.display='block';}
-  else {btn.textContent='✏️ Corregir Exactamente'; details.style.display='block';}
+  const loteWrap=document.getElementById('gs-lote-wrap');
+  if(val==='ingresar'){
+    btn.textContent='➕ Ingresar Stock';
+    details.style.display='none';
+    if(loteWrap)loteWrap.style.display='block';
+  } else if(val==='consumir'){
+    btn.textContent='➖ Consumir/Entregar';
+    details.style.display='block';
+    if(loteWrap)loteWrap.style.display='none';
+  } else {
+    btn.textContent='✏️ Corregir Exactamente';
+    details.style.display='block';
+    if(loteWrap)loteWrap.style.display='none';
+  }
 }
 function abrirGestionStock(id,nombre,actual){
   document.getElementById('gs-item-id').value=id;
@@ -1938,7 +2098,9 @@ function abrirGestionStock(id,nombre,actual){
   document.getElementById('gs-item-actual').value=actual;
   document.getElementById('gs-cantidad').value='';
   document.getElementById('gs-motivo').value='';
+  document.getElementById('gs-lote').value='';
   document.getElementById('gs-accion').value='ingresar';
+  document.getElementById('gs-fecha').value=new Date().toISOString().split('T')[0];
   toggleGestionMotivo('ingresar');
   openModal('modal-gestion-stock');
 }
@@ -1949,14 +2111,16 @@ async function ejecutarGestionStock(){
   const qty=parseInt(document.getElementById('gs-cantidad').value);
   const accion=document.getElementById('gs-accion').value;
   const motivo=document.getElementById('gs-motivo').value.trim()||'Sin justificación';
-  
+  const fecha=document.getElementById('gs-fecha').value||new Date().toISOString().split('T')[0];
+  const lote=document.getElementById('gs-lote').value.trim();
+
   if(isNaN(qty)||qty<0)return toast('⚠️ Cantidad inválida');
-  
+
   let nuevoStock = actual;
   let logDesc='';
-  if(accion==='ingresar'){ nuevoStock=actual+qty; logDesc=`[+INGRESO] +${qty} unidades de "${nombre}"`; }
-  else if(accion==='consumir'){ nuevoStock=Math.max(0,actual-qty); logDesc=`[-CONSUMO] -${qty} unidades de "${nombre}". Destino: ${motivo}`; }
-  else if(accion==='corregir'){ nuevoStock=qty; logDesc=`[*CORRECCIÓN] "${nombre}" pasó de ${actual} a ${qty}. Motivo: ${motivo}`; }
+  if(accion==='ingresar'){ nuevoStock=actual+qty; logDesc=`[+INGRESO] +${qty} unidades de "${nombre}"${lote?' | Lote/Proveedor: '+lote:''} | Fecha: ${fecha}`; }
+  else if(accion==='consumir'){ nuevoStock=Math.max(0,actual-qty); logDesc=`[-CONSUMO] -${qty} unidades de "${nombre}". Destino: ${motivo} | Fecha: ${fecha}`; }
+  else if(accion==='corregir'){ nuevoStock=qty; logDesc=`[*CORRECCIÓN] "${nombre}" pasó de ${actual} a ${qty}. Motivo: ${motivo} | Fecha: ${fecha}`; }
 
   const btn=document.getElementById('gs-btn');
   btn.disabled=true;btn.textContent='Guardando...';
@@ -2080,8 +2244,26 @@ async function procesarQR(codigo){
     document.getElementById('qr-manual').value='';
     openModal('modal-prestamo');
   } else if(herr.estado==='prestado'){
-    const{data:p}=await sb.from('prestamos').select(`id,fecha_prestamo,fecha_dev_esperada,usuario:perfiles!usuario_id(nombre)`).eq('herramienta_id',herr.id).eq('estado','activo').single();
-    mostrarResultadoScan('warn',`📥 ${herr.items?.nombre} — En préstamo`,`Asignada a <strong>${p?.usuario?.nombre||'—'}</strong> desde el ${fmtDate(p?.fecha_prestamo)}${p?.fecha_dev_esperada?'. Devolución esperada: '+fmtDate(p?.fecha_dev_esperada):''}<br><br><button class="btn btn-success" onclick="confirmarDevolucion('${p?.id}','${herr.id}')" style="margin-top:8px">✅ Registrar devolución</button>`);
+    const{data:p}=await sb.from('prestamos').select(`id,estado,fecha_prestamo,fecha_dev_esperada,usuario_id,usuario:perfiles!usuario_id(nombre)`).eq('herramienta_id',herr.id).in('estado',['activo','pendiente_devolucion']).single();
+    if(!p){mostrarResultadoScan('danger','❌ Sin préstamo activo','No se encontró préstamo activo para esta herramienta.');return;}
+    const nombreHerr=herr.items?.nombre||'—';
+    const infoBase=`Asignada a <strong>${p?.usuario?.nombre||'—'}</strong> desde el ${fmtDate(p?.fecha_prestamo)}${p?.fecha_dev_esperada?'. Devolución esperada: '+fmtDate(p?.fecha_dev_esperada):''}`;
+    if(p.estado==='pendiente_devolucion'){
+      if(esAdmin){
+        mostrarResultadoScan('warn',`📥 ${nombreHerr} — Devolución solicitada`,`${infoBase}<br><br>El operario solicita devolver esta herramienta.<br><br><button class="btn btn-success" onclick="aceptarDevolucion('${p.id}','${herr.id}')" style="margin-top:8px">✅ Confirmar recepción física</button>`);
+      } else {
+        mostrarResultadoScan('warn',`⏳ ${nombreHerr} — Devolución en espera`,`${infoBase}<br><br>Ya solicitaste la devolución. Espera a que el administrador confirme la recepción física.`);
+      }
+    } else {
+      // estado activo
+      if(esAdmin){
+        mostrarResultadoScan('warn',`📥 ${nombreHerr} — En préstamo`,`${infoBase}<br><br><button class="btn btn-success" onclick="aceptarDevolucion('${p.id}','${herr.id}')" style="margin-top:8px">✅ Confirmar devolución (admin)</button>`);
+      } else if(p.usuario_id===currentUser.id){
+        mostrarResultadoScan('warn',`📥 ${nombreHerr} — En tu poder`,`${infoBase}<br><br><button class="btn btn-primary" onclick="solicitarDevolucion('${p.id}','${herr.id}','${nombreHerr.replace(/'/g,"\\'")}')" style="margin-top:8px">📤 Solicitar devolución</button>`);
+      } else {
+        mostrarResultadoScan('warn',`📥 ${nombreHerr} — En préstamo`,`${infoBase}`);
+      }
+    }
   } else {
     mostrarResultadoScan('danger','⚠️ No disponible',`Estado actual: <strong>${herr.estado}</strong>`);
   }
@@ -2145,12 +2327,33 @@ async function rechazarPrestamo(prestamoId){
   await sb.from('notificaciones').insert({usuario_id:p.usuario_id, mensaje:`❌ Tu solicitud de préstamo de "${p.herramientas?.items?.nombre||'herramienta'}" fue rechazada por ${currentPerfil.nombre}.`, leida:false});
   toast('Préstamo rechazado');loadDashboard();loadHerramientas();loadHistorial();
 }
-async function confirmarDevolucion(prestamoId, herrId){
-  const{error}=await sb.from('prestamos').update({estado:'devuelto',fecha_dev_real:new Date().toISOString()}).eq('id',prestamoId);
+async function solicitarDevolucion(prestamoId, herrId, herrNombre){
+  if(!confirm(`¿Confirmas que deseas solicitar la devolución de "${herrNombre}"?\nEl administrador deberá confirmar que recibió la herramienta físicamente.`))return;
+  const{error}=await sb.from('prestamos').update({estado:'pendiente_devolucion'}).eq('id',prestamoId);
+  if(error)return toast('❌ '+error.message);
+  // Notificar a todos los admins
+  const{data:admins}=await sb.from('perfiles').select('id').eq('rol','admin');
+  if(admins?.length){
+    const notifs=admins.map(a=>({usuario_id:a.id,mensaje:`📥 ${currentPerfil.nombre} solicita devolver "${herrNombre}". Confirma la recepción física en el Dashboard.`,leida:false}));
+    await sb.from('notificaciones').insert(notifs);
+  }
+  toast('📤 Devolución solicitada — el admin debe confirmarla');
+  mostrarResultadoScan('warn','⏳ Devolución solicitada',`Tu solicitud de devolución de "<strong>${herrNombre}</strong>" fue enviada al administrador. Entrega la herramienta físicamente y espera la confirmación.`);
+  loadHerramientas();loadHistorial();loadDashboard();
+}
+async function aceptarDevolucion(prestamoId, herrId){
+  if(!confirm('¿Confirmas que recibiste físicamente la herramienta?'))return;
+  const{data:pr}=await sb.from('prestamos').select('usuario_id,herramientas(items(nombre))').eq('id',prestamoId).single();
+  const{error}=await sb.from('prestamos').update({estado:'devuelto',fecha_dev_real:new Date().toISOString(),admin_id:currentUser.id}).eq('id',prestamoId);
   if(error)return toast('❌ '+error.message);
   if(herrId) await sb.from('herramientas').update({estado:'disponible'}).eq('id',herrId);
-  toast('✅ Devolución registrada');
-  mostrarResultadoScan('success','✅ Devolución registrada','La herramienta está disponible nuevamente para el equipo de producción.');
+  // Notificar al operario
+  if(pr?.usuario_id){
+    const nombre=pr.herramientas?.items?.nombre||'herramienta';
+    await sb.from('notificaciones').insert({usuario_id:pr.usuario_id,mensaje:`✅ Tu devolución de "${nombre}" fue confirmada por ${currentPerfil.nombre}. La herramienta quedó disponible.`,leida:false});
+  }
+  toast('✅ Recepción confirmada — herramienta disponible');
+  mostrarResultadoScan('success','✅ Devolución confirmada','La herramienta fue recibida y está disponible nuevamente para el equipo de producción.');
   loadHerramientas();loadHistorial();loadDashboard();
 }
 function startScan(){
@@ -2527,9 +2730,13 @@ function fmtDate(d){
   if(!d)return'—';
   return new Date(d).toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'});
 }
+function fmtDateTime(d){
+  if(!d)return'—';
+  return new Date(d).toLocaleString('es-CO',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
 function badgeEstado(e){
-  const m={disponible:'badge-success',prestado:'badge-warn',mantenimiento:'badge-purple',baja:'badge-muted',activo:'badge-warn',devuelto:'badge-success',vencido:'badge-danger',pendiente:'badge-purple'};
-  const l={disponible:'Disponible',prestado:'En préstamo',mantenimiento:'Mantenimiento',baja:'Baja',activo:'Activo',devuelto:'Devuelto',vencido:'Vencido',pendiente:'Pendiente'};
+  const m={disponible:'badge-success',prestado:'badge-warn',mantenimiento:'badge-purple',baja:'badge-muted',activo:'badge-warn',devuelto:'badge-success',vencido:'badge-danger',pendiente:'badge-purple',pendiente_devolucion:'badge-blue'};
+  const l={disponible:'Disponible',prestado:'En préstamo',mantenimiento:'Mantenimiento',baja:'Baja',activo:'Activo',devuelto:'Devuelto',vencido:'Vencido',pendiente:'Pendiente',pendiente_devolucion:'Dev. pendiente'};
   return`<span class="badge ${m[e]||'badge-muted'}">${l[e]||e}</span>`;
 }
 function badgeUrgencia(u){
