@@ -1451,13 +1451,13 @@ async function loadDashboard(){
     const dashPend=document.getElementById('dash-pendientes-admin');
     try{
       const{data:pendData,error:pendErr}=await sb.from('prestamos')
-        .select('id,fecha_prestamo,observaciones,herramientas(items(nombre)),perfiles(nombre)')
+        .select('id,fecha_prestamo,observaciones,herramientas(items(nombre)),usuario:perfiles!usuario_id(nombre)')
         .eq('estado','pendiente');
       if(pendErr){dashPend.innerHTML='<div class="alert alert-danger">Error: '+pendErr.message+'</div>';}
       else if(pendData&&pendData.length>0){
         const rows=pendData.map(pr=>`<tr>
           <td><div style="font-weight:500">${pr.herramientas?.items?.nombre||'—'}</div></td>
-          <td style="color:var(--muted)">${pr.perfiles?.nombre||'—'}</td>
+          <td style="color:var(--muted)">${pr.usuario?.nombre||'—'}</td>
           <td style="color:var(--muted);font-size:12px">${fmtDate(pr.fecha_prestamo)}</td>
           <td style="color:var(--muted2);font-size:12px">${pr.observaciones||'—'}</td>
           <td style="display:flex;gap:6px">
@@ -1507,12 +1507,12 @@ async function loadDashboard(){
     // AUDITORÍA: Herramientas en poder de cada usuario (solo admin)
     try{
       const{data:todosActivos}=await sb.from('prestamos')
-        .select('id,fecha_prestamo,fecha_dev_esperada,usuario_id,herramientas(items(nombre)),perfiles(nombre)')
+        .select('id,fecha_prestamo,fecha_dev_esperada,usuario_id,herramientas(items(nombre)),usuario:perfiles!usuario_id(nombre)')
         .eq('estado','activo');
       if(todosActivos&&todosActivos.length>0){
         const porUsuario={};
         for(const act of todosActivos){
-          if(!porUsuario[act.usuario_id])porUsuario[act.usuario_id]={nombre:act.perfiles?.nombre||'Desconocido',items:[]};
+          if(!porUsuario[act.usuario_id])porUsuario[act.usuario_id]={nombre:act.usuario?.nombre||'Desconocido',items:[]};
           porUsuario[act.usuario_id].items.push(act);
         }
         let auditHtml='';
@@ -1539,9 +1539,9 @@ async function loadDashboard(){
     }catch(e){document.getElementById('dash-auditoria-admin').innerHTML='';}
   }
 
-  const{data:rec}=await sb.from('prestamos').select(`id,fecha_prestamo,estado,herramientas(items(nombre)),perfiles(nombre)`).order('fecha_prestamo',{ascending:false}).limit(6);
+  const{data:rec}=await sb.from('prestamos').select(`id,fecha_prestamo,estado,herramientas(items(nombre)),usuario:perfiles!usuario_id(nombre)`).order('fecha_prestamo',{ascending:false}).limit(6);
   if(rec?.length){
-    let rows=rec.map(r=>`<tr><td><div style="font-weight:500">${r.herramientas?.items?.nombre||'—'}</div></td><td style="color:var(--muted)">${r.perfiles?.nombre||'—'}</td><td style="color:var(--muted);font-size:12px">${fmtDate(r.fecha_prestamo)}</td><td>${badgeEstado(r.estado)}</td></tr>`).join('');
+    let rows=rec.map(r=>`<tr><td><div style="font-weight:500">${r.herramientas?.items?.nombre||'—'}</div></td><td style="color:var(--muted)">${r.usuario?.nombre||'—'}</td><td style="color:var(--muted);font-size:12px">${fmtDate(r.fecha_prestamo)}</td><td>${badgeEstado(r.estado)}</td></tr>`).join('');
     document.getElementById('dash-recientes').innerHTML=`<div class="card"><div class="card-header"><span class="card-title">Movimientos recientes</span></div><div class="table-wrap"><table><thead><tr><th>Herramienta</th><th>Usuario</th><th>Fecha</th><th>Estado</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
   }
 }
@@ -1715,17 +1715,27 @@ async function importarExcelHerramientas(e){
 }
 async function eliminarHerramienta(id){
   if(!confirm('¿Eliminar esta herramienta del sistema? Esta acción no se puede deshacer y borrará también su historial de préstamos asociados.'))return;
-  // Borrar primero los préstamos asociados para evitar violación de llave foránea
+
+  // Verificar préstamos activos antes de proceder
+  const{data:activos}=await sb.from('prestamos').select('id').eq('herramienta_id',id).in('estado',['activo','pendiente']);
+  if(activos?.length){
+    if(!confirm(`Esta herramienta tiene ${activos.length} préstamo(s) activo(s). ¿Eliminar de todas formas?`))return;
+  }
+
+  // Borrar todos los préstamos asociados
   await sb.from('prestamos').delete().eq('herramienta_id',id);
-  
-  // Obtener item_id antes de borrar la herramienta
+
+  // Verificar que no queden (RLS puede bloquear el delete silenciosamente)
+  const{data:restantes}=await sb.from('prestamos').select('id').eq('herramienta_id',id);
+  if(restantes?.length){
+    return toast('❌ No se puede eliminar: quedan préstamos asociados que no tienen permiso de borrar. Devuelva o cierre esos préstamos primero.');
+  }
+
   const{data:herr}=await sb.from('herramientas').select('item_id').eq('id',id).single();
   const{error:e1}=await sb.from('herramientas').delete().eq('id',id);
   if(e1)return toast('❌ Error al eliminar: '+e1.message);
-  // Borrar el item padre
-  if(herr?.item_id){
-    await sb.from('items').delete().eq('id',herr.item_id);
-  }
+  if(herr?.item_id) await sb.from('items').delete().eq('id',herr.item_id);
+
   await loadHerramientas();
   toast('✅ Herramienta eliminada correctamente');
 }
@@ -2070,8 +2080,8 @@ async function procesarQR(codigo){
     document.getElementById('qr-manual').value='';
     openModal('modal-prestamo');
   } else if(herr.estado==='prestado'){
-    const{data:p}=await sb.from('prestamos').select(`id,fecha_prestamo,fecha_dev_esperada,perfiles(nombre)`).eq('herramienta_id',herr.id).eq('estado','activo').single();
-    mostrarResultadoScan('warn',`📥 ${herr.items?.nombre} — En préstamo`,`Asignada a <strong>${p?.perfiles?.nombre||'—'}</strong> desde el ${fmtDate(p?.fecha_prestamo)}${p?.fecha_dev_esperada?'. Devolución esperada: '+fmtDate(p?.fecha_dev_esperada):''}<br><br><button class="btn btn-success" onclick="confirmarDevolucion('${p?.id}','${herr.id}')" style="margin-top:8px">✅ Registrar devolución</button>`);
+    const{data:p}=await sb.from('prestamos').select(`id,fecha_prestamo,fecha_dev_esperada,usuario:perfiles!usuario_id(nombre)`).eq('herramienta_id',herr.id).eq('estado','activo').single();
+    mostrarResultadoScan('warn',`📥 ${herr.items?.nombre} — En préstamo`,`Asignada a <strong>${p?.usuario?.nombre||'—'}</strong> desde el ${fmtDate(p?.fecha_prestamo)}${p?.fecha_dev_esperada?'. Devolución esperada: '+fmtDate(p?.fecha_dev_esperada):''}<br><br><button class="btn btn-success" onclick="confirmarDevolucion('${p?.id}','${herr.id}')" style="margin-top:8px">✅ Registrar devolución</button>`);
   } else {
     mostrarResultadoScan('danger','⚠️ No disponible',`Estado actual: <strong>${herr.estado}</strong>`);
   }
@@ -2313,7 +2323,7 @@ function setHistTab(t){
 async function loadHistorial(){
   if(currentHistTab==='prestamos'){
     document.getElementById('tabla-historial').innerHTML=skeletonRows(5);
-    const q=sb.from('prestamos').select(`id,fecha_prestamo,fecha_dev_real,fecha_dev_esperada,estado,herramientas(items(nombre)),perfiles(nombre)`).order('fecha_prestamo',{ascending:false});
+    const q=sb.from('prestamos').select(`id,fecha_prestamo,fecha_dev_real,fecha_dev_esperada,estado,herramientas(items(nombre)),usuario:perfiles!usuario_id(nombre)`).order('fecha_prestamo',{ascending:false});
     if(!esAdmin)q.eq('usuario_id',currentUser.id);
     const{data}=await q;
     todosHistorial=data||[];
@@ -2332,7 +2342,7 @@ function renderHistorialPrestamos(data){
   const tb=document.getElementById('tabla-historial');
   if(!data.length){tb.innerHTML=`<tr><td colspan="5"><div class="empty">Sin registros</div></td></tr>`;return;}
   tb.innerHTML=data.map((p,i)=>`<tr style="animation:fadeUp .3s ease ${i*0.03}s both">
-    <td><div style="font-weight:500">${p.perfiles?.nombre||'—'}</div></td>
+    <td><div style="font-weight:500">${p.usuario?.nombre||'—'}</div></td>
     <td style="color:var(--muted)">${p.herramientas?.items?.nombre||'—'}</td>
     <td style="color:var(--muted2);font-size:12px">${fmtDate(p.fecha_prestamo)}</td>
     <td style="color:var(--muted2);font-size:12px">${p.fecha_dev_real?fmtDate(p.fecha_dev_real):'<span style="color:var(--warn)">Pendiente</span>'}</td>
@@ -2356,7 +2366,7 @@ function filtrarHistorial(){
   const hasta=document.getElementById('hist-hasta')?.value;
   if(currentHistTab==='prestamos'){
     const f=todosHistorial.filter(p=>{
-      const mQ=!q||(p.herramientas?.items?.nombre||'').toLowerCase().includes(q)||(p.perfiles?.nombre||'').toLowerCase().includes(q);
+      const mQ=!q||(p.herramientas?.items?.nombre||'').toLowerCase().includes(q)||(p.usuario?.nombre||'').toLowerCase().includes(q);
       const fecha=new Date(p.fecha_prestamo);
       const mD=!desde||fecha>=new Date(desde);
       const mH=!hasta||fecha<=new Date(hasta+'T23:59:59');
